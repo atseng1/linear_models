@@ -83,3 +83,108 @@ fit %>%
   knitr::kable(digits = 3)
 ```
 
+
+
+## Diagnostics
+
+Looking at what's going on with residuals
+```{r}
+residuals_violin = 
+  modelr::add_residuals(nyc_airbnb, fit) %>% 
+  ggplot(aes(x = boro, y = resid)) +
+  geom_violin() +
+  ylim(-500, 500)
+
+residuals_violin
+
+
+residuals_scatter = 
+  modelr::add_residuals(nyc_airbnb, fit) %>% 
+  ggplot(aes(x = stars, y = resid)) +
+  geom_point() +
+  ylim(-500, 500)
+
+residuals_scatter
+```
+
+
+add_predictions is just plugging the values into the regression equation and spitting out the value. add_predictions is the same structure as add_residuals:
+```{r}
+modelr::add_predictions(nyc_airbnb, fit)
+```
+
+
+
+## Skipping Hypothesis Testing
+
+
+
+## Nesting Data
+```{r}
+fit_interaction = lm(price ~ stars * boro, data = nyc_airbnb)
+
+fit_interaction %>% 
+  broom::tidy()
+```
+In the Bronx and in Queens, it almost doesn't matter what the number of stars the airbnb has is. In Manhattan, it will depend a lot on the number of stars.
+
+
+```{r}
+fit_interaction = lm(price ~ stars * boro + room_type * boro, data = nyc_airbnb)
+
+fit_interaction %>% 
+  broom::tidy()
+```
+In Manhattan, a shared room is going to cost you on average $154 less.
+
+
+```{r}
+nyc_airbnb %>% 
+  lm(price ~ stars * boro + room_type * boro, data = .) %>% 
+  broom::tidy() %>% 
+  knitr::kable(digits = 3)
+```
+
+
+Let's try to map this instead.
+```{r}
+nest_lm_res =
+  nyc_airbnb %>% 
+  nest(data = -boro) %>% 
+  mutate(models = map(.x = data, ~lm(price ~ stars + room_type, data = .x)),
+         models = map(models, broom::tidy)) %>% 
+  select(-data) %>% 
+  unnest(models)
+```
+Going from an entire home to a shared room in Manhattan will cost you $154 less and $106 less in Brooklyn.
+
+
+
+Let's nest neighborhoods:
+```{r}
+manhattan_nest_lm_res =
+  nyc_airbnb %>% 
+  filter(boro == "Manhattan") %>% 
+  nest(data = -neighborhood) %>% 
+  mutate(models = map(.x = data, ~lm(price ~ stars + room_type, data = .x)),
+         models = map(models, broom::tidy)) %>% 
+  select(-data) %>% 
+  unnest(models)
+
+MH_nest_plot = manhattan_nest_lm_res %>% 
+  filter(str_detect(term, "room_type")) %>% 
+  ggplot(aes(x = neighborhood, y = estimate)) + 
+  geom_point() + 
+  facet_wrap(~term) + 
+  theme(axis.text.x = element_text(angle = 80, hjust = 1))
+
+MH_nest_plot
+```
+Private rooms are on the left, shared rooms are on the right. In Battery Park city, private rooms are less expensive than an entire home (~$100 less). In NoHo, it's $200 less to stay in a private room than an entire home.
+
+```{r}
+nyc_airbnb %>% 
+  filter(neighborhood == "Murray Hill", room_type == "Shared room")
+```
+Great for exploratory analysis, but not a formal analysis
+
