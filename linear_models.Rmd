@@ -7,6 +7,7 @@ output: github_document
 
 ```{r setup, include=FALSE}
 library(tidyverse)
+library(p8105.datasets)
 
 knitr::opts_chunk$set(
 	echo = TRUE,
@@ -22,10 +23,63 @@ options(
 scale_colour_discrete = scale_colour_viridis_d
 scale_fill_discrete = scale_fill_viridis_d
 theme_set(theme_minimal() + theme(legend.position = "bottom"))
+
+set.seed(1)
 ```
 
-## 
+## Model Fitting
 ```{r}
+data("nyc_airbnb")
 
+nyc_airbnb = 
+  nyc_airbnb %>% 
+  mutate(stars = review_scores_location / 2) %>% 
+  rename(
+    boro = neighbourhood_group,
+    neighborhood = neighbourhood) %>% 
+  filter(boro != "Staten Island") %>% 
+  select(price, stars, boro, neighborhood, room_type)
+```
+
+
+Fit first linear model!
+```{r}
+fit = lm(price ~ stars + boro, data = nyc_airbnb)
+
+summary(fit)
+```
+ 
+
+Tidy the results
+```{r}
+fit %>% 
+  broom::tidy() %>% 
+  mutate(term = str_replace(term, "boro", "Boro: ")) %>% 
+  knitr::kable(digits = 3)
+```
+
+
+
+## Take a look at factors
+Changing reference group:
+```{r}
+nyc_airbnb = 
+  nyc_airbnb %>% 
+  mutate(
+    boro = fct_infreq(boro, ordered = NA),
+    room_type = fct_infreq(room_type))
+```
+
+Refit the last model
+```{r}
+fit = lm(price ~ stars + boro, data = nyc_airbnb)
+```
+
+Tidy
+```{r}
+fit %>% 
+  broom::tidy() %>% 
+  mutate(term = str_replace(term, "boro", "Boro: ")) %>% 
+  knitr::kable(digits = 3)
 ```
 
