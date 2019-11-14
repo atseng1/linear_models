@@ -233,3 +233,29 @@ cv_df %>%
 ```
 
 <img src="cross_validation_files/figure-gfm/unnamed-chunk-12-1.png" width="90%" />
+
+## Example: Child Growth
+
+``` r
+child_growth = read_csv("./data/nepalese_children.csv")
+```
+
+    ## Parsed with column specification:
+    ## cols(
+    ##   age = col_double(),
+    ##   sex = col_double(),
+    ##   weight = col_double(),
+    ##   height = col_double(),
+    ##   armc = col_double()
+    ## )
+
+``` r
+child_growth %>% 
+  ggplot(aes(x = weight, y = armc)) + 
+  geom_point(alpha = .5)
+```
+
+<img src="cross_validation_files/figure-gfm/unnamed-chunk-13-1.png" width="90%" />
+Based on visually inspecting the plot, there is maaaybe not a straight
+line. If we tried to draw a line through the points, we would probbaly
+curve it.
